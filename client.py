@@ -1,17 +1,20 @@
 import json
-import requests
 import sys
 import re
-from Server import _load_servers
-from pprint import pprint
+import argparse
+import requests
+from server import _load_servers
 from prettytable import PrettyTable
+import constant as C
 
 """
 client module to fetch the server computation reports
 """
-def get_request(hostname):
-   """ : request to flask api """
-   api_endpoint = 'http://127.0.0.1:9999/{0}/status'.format(hostname)
+def get_request(servername):
+   """ : request to flask api
+       : hostname - get status for server name
+   """
+   api_endpoint = 'http://' + '{0}:{1}/{2}/status'.format(C.default_host,C.default_port, servername)
    header_info = {
        'cache-control': 'no-cache',
        'accept': 'application/json',
@@ -19,7 +22,7 @@ def get_request(hostname):
    }
    response = requests.get(api_endpoint, headers=header_info)
    server_data = None
-   if response.status_code == 200:
+   if response.status_code == C.success_code:
        server_data = response.content
        server_data = server_data.replace('\n' , '')
        server_data = re.sub(' +',' ',server_data)
@@ -27,7 +30,9 @@ def get_request(hostname):
 
 app_main_dict = dict()
 def prepare_data_structure(jdata):
-    """ prepare data structure for all application or by application name"""
+    """ prepare data structure for all application or by application name
+        : jdata - list of sever response in dict format
+    """
     for app_dict in jdata:
         if not app_dict['Application'] in app_main_dict.keys():
             app_main_dict[app_dict['Application']] = dict()
@@ -48,44 +53,51 @@ def prepare_data_structure(jdata):
     return app_main_dict
 
 def print_result(**params):
-    """ print humen readable format and dump the data to json file """
+    """ print humen readable format and dump the data to json file
+        : params - application name or list of server response in dict format
+    """
     if not params['app_computed_dict']:
         return 'please send the data.!!!'
 
-    app_name = None
+    application_name = None
     if 'app_name' in params:
-        app_name = params['app_name']
+        application_name = params['app_name']
 
     success_rate = None
     app_computed_dict = params['app_computed_dict']
     x = PrettyTable(["Application Name", "Version", "Success Rate"])
     x.align["Application Name"] = "l"
 
-    # looping through the data structure and printing in humen-readable format
-    if app_name:
-        for app_version , app_name_dict in app_computed_dict[app_name].iteritems():
-            success_rate = (float(app_computed_dict[app_name][app_version]['Success_Count']) / float(app_computed_dict[app_name][app_version]['Request_Count'])) * 100
-            x.add_row([app_name, app_version, "{0:.2f}%".format(success_rate)])
+    if application_name:
+        for app_version , app_name_dict in app_computed_dict[application_name].iteritems():
+            success_rate = (float(app_computed_dict[application_name][app_version]['Success_Count']) / float(app_computed_dict[application_name][app_version]['Request_Count'])) * 100
+            x.add_row([application_name, app_version, "{0:.2f}%".format(success_rate)])
         print(x)
     else:
-        for app_name, app_name_dict in app_computed_dict.iteritems():
+        for application_name, app_name_dict in app_computed_dict.iteritems():
             for app_version, app_version_count in app_name_dict.iteritems():
-                success_rate = (float(app_computed_dict[app_name][app_version]['Success_Count']) / float(app_computed_dict[app_name][app_version]['Request_Count'])) * 100
-                x.add_row([app_name, app_version, "{0:.2f}%".format(success_rate)])
+                success_rate = (float(app_computed_dict[application_name][app_version]['Success_Count']) / float(app_computed_dict[application_name][app_version]['Request_Count'])) * 100
+                x.add_row([application_name, app_version, "{0:.2f}%".format(success_rate)])
         print(x)
 
 def generate_report_file(**params):
-    # write data to local json file
+    """ create a report file in json format
+       : app_computed_dict - list of server response in dictionary format
+    """
     app_computed_dict = params['app_computed_dict']
     with open('app_count_report.json', 'w') as fp:
         json.dump(app_computed_dict, fp)
 
-def main():
-    """ Main Function """
+def compute_server_statistics(application_by_name):
+    """ compute server statistics
+       : server - read list of servers from txt file
+       : print result - prints reports in humen readable format
+       : generate report - created report in json file format
+    """
     servers = [s.strip() for s in _load_servers()]
     host_data = []
     for host in servers:
-        response = get_request(hostname=host)
+        response = get_request(servername=host)
         if response:
             response = json.loads(response)
             response = response.values()[0]
@@ -93,10 +105,13 @@ def main():
 
     print '******************** Parsed Data Structure ***************'
     app_computed_dict = prepare_data_structure(host_data)
-    #print_result(**{'app_computed_dict': app_computed_dict, 'app_name': 'Webapp2'})
-    print_result(**{'app_computed_dict': app_computed_dict})
+    print_result(**{'app_computed_dict': app_computed_dict, 'app_name': application_by_name})
+    #print_result(**{'app_computed_dict': app_computed_dict})
     generate_report_file(**{'app_computed_dict': app_computed_dict})
 
 if __name__ == '__main__':
     """test client"""
-    main()
+    parser = argparse.ArgumentParser(description="application aggregate report")
+    parser.add_argument('-n', '--app_name', type=str, required=False)
+    args = parser.parse_args()
+    compute_server_statistics(application_by_name = args.app_name)

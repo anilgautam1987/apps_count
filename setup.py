@@ -5,8 +5,12 @@
 '''
 
 from distutils import core
+try:
+   from setuptools import setup
+except ImportError:
+   from distutils.core import setup
 
-core.setup(
+setup(
   name='app_count',
   version='1.1.0',
   description='app count setup',
@@ -17,8 +21,8 @@ core.setup(
   packages=[],
   scripts=[],
   data_files=[],
-  install_requires=['requests=2.18.4',
-                    'Flask=0.12.2',
-                    'prettytable-0.7.2',
+  install_requires=['requests',
+                    'Flask',
+                    'prettytable',
                     ],
 )
