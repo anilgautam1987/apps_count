@@ -18,7 +18,7 @@ Run Server : <br>
 python server.py <br>
 server api endpoint:
     http://127.0.0.1:9999/{server_name}/status/ <br>
-client:<br>
+Run Client:<br>
      pull request by applicatin name <br>
      python client.py --app_name=Cache1 <br>
      python client.py
