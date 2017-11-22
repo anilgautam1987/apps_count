@@ -14,7 +14,11 @@ Removing the manual work and can be used to generate the daily report.
 python setup.py install
 
 ## API Reference
+Run Server : <br>
+python server.py <br>
 server api endpoint:
-    http://127.0.0.1:9999/{server_name}/status/
-client:
-    python client.py
+    http://127.0.0.1:9999/{server_name}/status/ <br>
+client:<br>
+     pull request by applicatin name
+     python client.py --app_name=Cache1 <br>
+     python client.py
