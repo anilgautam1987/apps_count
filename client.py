@@ -86,7 +86,7 @@ def generate_report_file(**params):
     """
     app_computed_dict = params['app_computed_dict']
     with open('app_count_report.json', 'w') as fp:
-        json.dump(app_computed_dict, fp)
+        fp.write(json.dumps(app_computed_dict, indent=2))
 
 def compute_server_statistics(application_by_name):
     """ compute server statistics
